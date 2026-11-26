@@ -1,0 +1,1644 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>反詐安全防線：社群私訊與求職模擬器</title>
+    <!-- 引入 Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入 Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- 引入 Google Fonts (Noto Sans TC & Inter) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', 'Noto Sans TC', sans-serif;
+            background-color: #f1f5f9;
+        }
+        /* 自訂滾動條樣式 */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        /* 訊息彈出動畫 */
+        @keyframes msgPop {
+            0% { opacity: 0; transform: translateY(10px) scale(0.98); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .animate-msg {
+            animation: msgPop 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        /* 打字機點點動畫 */
+        .typing-dot {
+            animation: typingBlink 1.4s infinite both;
+        }
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes typingBlink {
+            0%, 80%, 100% { opacity: 0.2; transform: scale(0.8); }
+            40% { opacity: 1; transform: scale(1); }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center p-2 sm:p-4 text-slate-800">
+
+    <!-- 主容器：模擬現代應用程式介面 -->
+    <div id="app" class="w-full max-w-5xl bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-200 flex flex-col md:flex-row min-h-[85vh] max-h-[92vh]">
+        
+        <!-- 左側邊欄：情境選擇與安全指標 (在手機版可切換或頂部顯示) -->
+        <aside class="w-full md:w-64 lg:w-72 bg-slate-900 text-white p-4 flex flex-col justify-between shrink-0">
+            <div>
+                <!-- 品牌標題 -->
+                <div class="flex items-center gap-2.5 mb-5">
+                    <div class="w-9 h-9 rounded-xl bg-indigo-500 flex items-center justify-center shadow-lg shadow-indigo-500/30 shrink-0">
+                        <i data-lucide="shield-check" class="w-5 h-5 text-white"></i>
+                    </div>
+                    <div>
+                        <h1 class="font-bold text-base tracking-wide">反詐安全防線</h1>
+                        <p class="text-[11px] text-slate-400">青少年數位素養互動模擬</p>
+                    </div>
+                </div>
+
+                <!-- 安全指數儀表板 -->
+                <div class="bg-slate-800/80 rounded-2xl p-3.5 mb-5 border border-slate-700/80">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-xs font-medium text-slate-300 flex items-center gap-1.5">
+                            <i data-lucide="heart-pulse" class="w-4 h-4 text-emerald-400"></i> 個人安全指數
+                        </span>
+                        <span id="safety-score-text" class="text-sm font-bold text-emerald-400">100 / 100</span>
+                    </div>
+                    <div class="w-full bg-slate-700 rounded-full h-2 overflow-hidden">
+                        <div id="safety-bar" class="bg-emerald-400 h-2 rounded-full transition-all duration-500" style="width: 100%"></div>
+                    </div>
+                    <p id="safety-status-desc" class="text-[11px] text-slate-400 mt-2">
+                        保持警覺！注意對話中的可疑要求與話術。
+                    </p>
+                </div>
+
+                <!-- 劇本選擇清單 -->
+                <div class="space-y-1.5 max-h-[38vh] md:max-h-[46vh] overflow-y-auto pr-1">
+                    <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider px-1 sticky top-0 bg-slate-900 py-1 z-10">選擇模擬情境 (共 5 關)</p>
+                    
+                    <button type="button" data-action="start-scenario" data-scenario="job" id="btn-scenario-job" class="w-full text-left p-2.5 rounded-2xl transition-all border border-transparent hover:bg-slate-800 flex items-start gap-2.5 group">
+                        <div class="w-7 h-7 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-110 transition-transform">
+                            <i data-lucide="briefcase" class="w-4 h-4"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <div class="font-semibold text-xs text-slate-100 flex items-center gap-1 flex-wrap">
+                                情境一：高薪居家打工
+                                <span id="badge-job" class="hidden text-[10px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded-md">已完成</span>
+                            </div>
+                            <p class="text-[11px] text-slate-400 mt-0.5 truncate">聽歌打字員，免經驗日領三千？</p>
+                        </div>
+                    </button>
+
+                    <button type="button" data-action="start-scenario" data-scenario="social" id="btn-scenario-social" class="w-full text-left p-2.5 rounded-2xl transition-all border border-transparent hover:bg-slate-800 flex items-start gap-2.5 group">
+                        <div class="w-7 h-7 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-110 transition-transform">
+                            <i data-lucide="message-circle-heart" class="w-4 h-4"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <div class="font-semibold text-xs text-slate-100 flex items-center gap-1 flex-wrap">
+                                情境二：社群私訊交友
+                                <span id="badge-social" class="hidden text-[10px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded-md">已完成</span>
+                            </div>
+                            <p class="text-[11px] text-slate-400 mt-0.5 truncate">陌生帥氣帳號熱情搭訕帶投資？</p>
+                        </div>
+                    </button>
+
+                    <button type="button" data-action="start-scenario" data-scenario="order" id="btn-scenario-order" class="w-full text-left p-2.5 rounded-2xl transition-all border border-transparent hover:bg-slate-800 flex items-start gap-2.5 group">
+                        <div class="w-7 h-7 rounded-xl bg-sky-500/20 text-sky-400 flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-110 transition-transform">
+                            <i data-lucide="shopping-bag" class="w-4 h-4"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <div class="font-semibold text-xs text-slate-100 flex items-center gap-1 flex-wrap">
+                                情境三：電商刷單小幫手
+                                <span id="badge-order" class="hidden text-[10px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded-md">已完成</span>
+                            </div>
+                            <p class="text-[11px] text-slate-400 mt-0.5 truncate">代墊衝評價，前兩單真的有退錢？</p>
+                        </div>
+                    </button>
+
+                    <button type="button" data-action="start-scenario" data-scenario="model" id="btn-scenario-model" class="w-full text-left p-2.5 rounded-2xl transition-all border border-transparent hover:bg-slate-800 flex items-start gap-2.5 group">
+                        <div class="w-7 h-7 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-110 transition-transform">
+                            <i data-lucide="camera" class="w-4 h-4"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <div class="font-semibold text-xs text-slate-100 flex items-center gap-1 flex-wrap">
+                                情境四：網拍星探試鏡邀約
+                                <span id="badge-model" class="hidden text-[10px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded-md">已完成</span>
+                            </div>
+                            <p class="text-[11px] text-slate-400 mt-0.5 truncate">被挖掘當網拍模特兒，要求傳私密照？</p>
+                        </div>
+                    </button>
+
+                    <button type="button" data-action="start-scenario" data-scenario="friend" id="btn-scenario-friend" class="w-full text-left p-2.5 rounded-2xl transition-all border border-transparent hover:bg-slate-800 flex items-start gap-2.5 group">
+                        <div class="w-7 h-7 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-110 transition-transform">
+                            <i data-lucide="user-check" class="w-4 h-4"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <div class="font-semibold text-xs text-slate-100 flex items-center gap-1 flex-wrap">
+                                情境五：學長私訊借錢與投票
+                                <span id="badge-friend" class="hidden text-[10px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded-md">已完成</span>
+                            </div>
+                            <p class="text-[11px] text-slate-400 mt-0.5 truncate">認識的同學突然傳投票連結又借錢？</p>
+                        </div>
+                    </button>
+                </div>
+
+                <!-- 總結算報告按鈕 (完成全5關後解鎖顯示) -->
+                <div id="final-summary-banner" class="hidden mt-3">
+                    <button type="button" data-action="open-final-report" class="w-full py-2.5 px-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-bold text-xs shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center gap-1.5">
+                        <i data-lucide="trophy" class="w-4 h-4"></i> 查看全 5 關綜合安全指數
+                    </button>
+                </div>
+            </div>
+
+            <!-- 底部提示與求助專線 -->
+            <div class="mt-6 pt-4 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="phone-call" class="w-4 h-4 text-amber-400"></i>
+                    <span>反詐騙諮詢專線：<strong class="text-white">165</strong></span>
+                </div>
+                <button type="button" data-action="open-guide" class="text-indigo-400 hover:text-indigo-300 underline">
+                    防詐錦囊
+                </button>
+            </div>
+        </aside>
+
+        <!-- 右側主畫面：模擬手機通訊軟體視窗 -->
+        <main class="flex-1 flex flex-col bg-slate-50 relative overflow-hidden">
+            
+            <!-- 初始歡迎畫面 (尚未選擇情境時顯示) -->
+            <div id="welcome-screen" class="flex-1 flex flex-col items-center justify-center p-8 text-center">
+                <div class="w-20 h-20 bg-indigo-100 text-indigo-600 rounded-3xl flex items-center justify-center mb-6 shadow-inner">
+                    <i data-lucide="smartphone" class="w-10 h-10"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-slate-800 mb-3">準備好測試你的「防詐雷達」了嗎？</h2>
+                <p class="text-slate-600 max-w-md mb-8 leading-relaxed text-sm sm:text-base">
+                    網路世界中充滿各種誘人的工作機會與熱情的陌生私訊。請從左側（或下方）選擇一個情境開始模擬對話，練習辨識陷阱並做出最安全的決定！
+                </p>
+                <div class="flex flex-wrap gap-3 justify-center">
+                    <button type="button" data-action="start-scenario" data-scenario="job" class="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-2xl shadow-lg shadow-indigo-600/20 transition-all flex items-center gap-2">
+                        <i data-lucide="play" class="w-4 h-4"></i> 開始體驗「求職詐騙」
+                    </button>
+                    <button type="button" data-action="start-scenario" data-scenario="social" class="px-6 py-3 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 font-semibold rounded-2xl transition-all flex items-center gap-2">
+                        <i data-lucide="play" class="w-4 h-4"></i> 開始體驗「交友詐騙」
+                    </button>
+                </div>
+            </div>
+
+            <!-- 聊天室主體 (選擇情境後顯示) -->
+            <div id="chat-container" class="hidden flex-1 flex flex-col h-full overflow-hidden">
+                <!-- 聊天室頂部聯絡人資訊欄 -->
+                <header class="bg-white px-5 py-3.5 border-b border-slate-200 flex items-center justify-between shrink-0 shadow-sm z-10">
+                    <div class="flex items-center gap-3">
+                        <div id="contact-avatar" class="w-10 h-10 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-lg shrink-0">
+                            ?
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <h3 id="contact-name" class="font-bold text-slate-800 text-sm sm:text-base">聯絡人名稱</h3>
+                                <span id="contact-tag" class="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-medium">陌生帳號</span>
+                            </div>
+                            <p id="contact-bio" class="text-xs text-slate-500">帳號簡介資訊</p>
+                        </div>
+                    </div>
+                    <!-- 檢視帳號破綻按鈕 -->
+                    <button type="button" id="btn-inspect-profile" data-action="inspect-profile" class="px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 text-xs font-semibold flex items-center gap-1.5 transition-all relative">
+                        <span id="inspect-ping" class="hidden absolute -top-1 -right-1 flex h-3 w-3">
+                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                            <span class="relative inline-flex rounded-full h-3 w-3 bg-amber-500"></span>
+                        </span>
+                        <i data-lucide="search" class="w-3.5 h-3.5"></i>
+                        <span class="hidden sm:inline">檢查帳號資訊</span>
+                        <span class="sm:hidden">查帳號</span>
+                    </button>
+                </header>
+
+                <!-- 訊息對話紀錄區 -->
+                <div id="messages-area" class="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 bg-[#f8fafc]">
+                    <!-- 動態插入訊息氣泡與提示卡片 -->
+                </div>
+
+                <!-- 對方正在輸入提示 -->
+                <div id="typing-indicator" class="hidden px-6 py-2 bg-[#f8fafc] text-xs text-slate-400 flex items-center gap-2">
+                    <div class="bg-white border border-slate-200 px-3 py-2 rounded-2xl rounded-bl-none flex items-center gap-1 shadow-sm">
+                        <span class="w-1.5 h-1.5 bg-slate-400 rounded-full typing-dot"></span>
+                        <span class="w-1.5 h-1.5 bg-slate-400 rounded-full typing-dot"></span>
+                        <span class="w-1.5 h-1.5 bg-slate-400 rounded-full typing-dot"></span>
+                    </div>
+                    <span>對方正在輸入訊息...</span>
+                </div>
+
+                <!-- 底部玩家回覆選項區 -->
+                <div id="choices-area" class="bg-white border-t border-slate-200 p-4 shrink-0">
+                    <p class="text-xs font-semibold text-slate-400 mb-2.5 flex items-center gap-1.5">
+                        <i data-lucide="corner-down-right" class="w-3.5 h-3.5 text-indigo-500"></i> 請選擇你的回應方式：
+                    </p>
+                    <div id="choices-buttons" class="space-y-2">
+                        <!-- 動態生成選項按鈕 -->
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- 彈出視窗：帳號背景調查 / 系統解析 / 結算報告 -->
+    <div id="modal-overlay" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 animate-msg max-h-[88vh] overflow-y-auto">
+            <div id="modal-content">
+                <!-- 動態填入彈窗內容 -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // 1. 劇本資料庫設計 (求職詐騙 & 社群交友詐騙)
+        // ==========================================
+        const scenarios = {
+            job: {
+                id: 'job',
+                title: '情境一：高薪居家打工',
+                contactName: '林專員｜星光數位行銷',
+                contactTag: 'IG 限動廣告帳號',
+                contactBio: '居家兼職｜時間彈性｜免經驗日領現',
+                avatarText: '林',
+                avatarColor: 'bg-amber-100 text-amber-700',
+                profileClues: [
+                    '帳號成立時間僅 2 週，貼文全是名車、鈔票與「感謝老師帶我賺錢」的對話截圖。',
+                    '沒有提供任何公司統一編號、實體地址或官方網站。',
+                    '要求離開原本的社群平台，改用加密通訊軟體（如 Telegram 或特定 LINE 群）聯繫。'
+                ],
+                startStep: 'step1',
+                steps: {
+                    step1: {
+                        incoming: [
+                            '哈囉同學！看到你私訊詢問「居家聽歌打字員」的職缺對吧？😊',
+                            '我們的工作超簡單，只要在家用手機聽指定歌曲、打 50 字心得，一單現領 500 元，每天花 1 小時輕鬆日賺 2,000～3,000 元！完全免經驗、不收任何報名費喔！'
+                        ],
+                        redFlag: '【話術警訊：不合理的高薪與低門檻】打字、聽歌等無專業門檻的工作卻開出「日薪數千元」，明顯違反市場行情，這是吸引學生上鉤的典型誘餌。',
+                        choices: [
+                            {
+                                text: '哇！聽起來也太好賺了吧！請問要怎麼開始？',
+                                scoreDelta: -15,
+                                feedbackType: 'warning',
+                                feedback: '太快表現出渴望賺錢的心態，容易讓詐騙集團鎖定你為「高成功率目標」。建議先查證公司背景！',
+                                nextStep: 'step2'
+                            },
+                            {
+                                text: '聽起來待遇很好，請問你們公司的全名和統一編號是什麼？有實體辦公室嗎？',
+                                scoreDelta: 0,
+                                feedbackType: 'good',
+                                feedback: '做得好！主動查證公司行號與統編是求職的第一道防線。看看對方如何閃躲這個問題。',
+                                nextStep: 'step2_deflect'
+                            },
+                            {
+                                text: '這明顯是詐騙吧，世上沒有這麼好康的事。（直接封鎖）',
+                                scoreDelta: 10,
+                                feedbackType: 'safe',
+                                feedback: '敏銳度很高！一眼看穿不合理高薪陷阱並果斷封鎖，成功避開風險！',
+                                isEnding: true,
+                                endingTitle: '成功識破！果斷拒絕高薪誘餌',
+                                endingSummary: '你在第一時間就察覺到「低門檻、超高薪」的矛盾，沒有給詐騙集團任何進一步洗腦的機會。'
+                            }
+                        ]
+                    },
+                    step2_deflect: {
+                        incoming: [
+                            '我們是跟各大唱片公司合作的「線上外包工作室」，為了節省辦公室租金才全部居家辦公，所以沒有對外開放的門市喔～',
+                            '現在名額只剩最後 2 個！要應徵的話請先加我們派單主任的 LINE，並提供你的「姓名、電話、身分證字號」以及「銀行存摺封面」方便後續匯薪水給你！'
+                        ],
+                        redFlag: '【重大警訊：未錄取先索取個資與存摺】正規公司只會在「正式錄取報到後」才請員工提供薪轉帳戶，絕不會在面試前就要身分證與存摺拍照！',
+                        choices: [
+                            {
+                                text: '好喔，那我現在拍身分證跟存摺封面傳過去，怕名額被搶走！',
+                                scoreDelta: -45,
+                                feedbackType: 'danger',
+                                feedback: '極度危險！交出存摺與身分證，你的帳戶極可能淪為詐騙集團的「人頭帳戶」，不僅會變警示帳戶，還可能背上詐欺刑責！',
+                                nextStep: 'step3_trap'
+                            },
+                            {
+                                text: '還沒正式錄取就要身分證跟存摺太奇怪了，我不能提供這些資料。',
+                                scoreDelta: 5,
+                                feedbackType: 'good',
+                                feedback: '非常正確的判斷！堅守個資底線能保護你不成為人頭帳戶受害者。',
+                                nextStep: 'step3_push'
+                            }
+                        ]
+                    },
+                    step2: {
+                        incoming: [
+                            '名額很搶手喔！現在只剩最後 2 個缺額～',
+                            '要幫你保留名額的話，請先傳送你的「身分證正反面照片」和「銀行存摺封面」給我建檔，這樣你完成任務我們才能馬上匯款給你！'
+                        ],
+                        redFlag: '【重大警訊：未錄取先索取個資與存摺】正規企業絕不會在網路私訊階段要求傳送身分證正反面與存摺封面！',
+                        choices: [
+                            {
+                                text: '好，我馬上拍給你！（傳送證件與存摺照片）',
+                                scoreDelta: -45,
+                                feedbackType: 'danger',
+                                feedback: '極度危險！身分證正反面一旦外流，可能被拿去申辦網銀、小額貸款或人頭門號；提供存摺更可能讓你變成詐騙洗錢共犯！',
+                                nextStep: 'step3_trap'
+                            },
+                            {
+                                text: '為什麼還沒工作就要身分證跟存摺？這不合理，我拒絕提供。',
+                                scoreDelta: 5,
+                                feedbackType: 'good',
+                                feedback: '關鍵時刻踩住煞車！成功守住最重要的個人證件與金融帳戶資料。',
+                                nextStep: 'step3_push'
+                            }
+                        ]
+                    },
+                    step3_push: {
+                        incoming: [
+                            '唉唷同學你防備心太重了吧，我們每天幾百個人在領薪水，誰會騙你這點小錢？',
+                            '這樣好了，你先去下載我們的「星光任務 APP」（傳送不明 APK 連結），註冊後先儲值 1,000 元開通 VIP 派單權限，完成任務連同本金退你 1,500 元，這樣總可以了吧？'
+                        ],
+                        redFlag: '【雙重警訊：不明連結 + 先付錢才能工作】正規求職絕不會要求求職者「先匯款/儲值」或下載來路不明的手機安裝檔（APK），這會導致手機中毒或資金被騙光！',
+                        choices: [
+                            {
+                                text: '還要先儲值 1,000 元？找工作是要賺錢不是花錢！這絕對是詐騙，我要檢舉並封鎖你！',
+                                scoreDelta: 10,
+                                feedbackType: 'safe',
+                                feedback: '完全正確！牢記求職防詐「七不原則」中的「不繳錢、不辦卡、不隨意簽約、證件不離身」。',
+                                isEnding: true,
+                                endingTitle: '完美防禦！成功識破假求職真詐財',
+                                endingSummary: '你精準辨識出「索取證件存摺」、「下載不明程式」與「要求先儲值」三大詐騙核心手法，成功保護了自己的財產與清白！'
+                            },
+                            {
+                                text: '1,000 元而已應該還好，先下載 APP 試試看賺回本金...',
+                                scoreDelta: -40,
+                                feedbackType: 'danger',
+                                feedback: '落入「養套殺」陷阱！一旦下載不明 APP，手機通訊錄與簡訊驗證碼可能被木馬竊取；儲值後對方也會用各種理由要求繼續匯款才能提領！',
+                                isEnding: true,
+                                endingTitle: '警報響起！落入「假兼職先儲值」陷阱',
+                                endingSummary: '詐騙集團利用「小額試水溫」與「限時名額」製造焦慮。記住：凡是叫你先付錢、交存摺或下載非官方商店 APP 的打工，100% 是詐騙！'
+                            }
+                        ]
+                    },
+                    step3_trap: {
+                        incoming: [
+                            '收到囉！資料建檔完成。另外因為公司發薪系統需要驗證你的帳戶額度，請你把「提款卡」寄到指定超商，並告訴我提款卡密碼，驗證完三天內寄還給你，還會多給你 3,000 元津貼喔！'
+                        ],
+                        redFlag: '【終極警訊：索取提款卡與密碼】交出提款卡與密碼等同把帳戶完全交給詐騙集團洗錢，會直接觸犯《洗錢防制法》！',
+                        choices: [
+                            {
+                                text: '不對勁！提款卡跟密碼怎麼可以給別人！我不會寄出，我現在要去掛失存摺並打 165 求助！',
+                                scoreDelta: 5,
+                                feedbackType: 'good',
+                                feedback: '緊急止血非常正確！發現資料外洩時，立刻向銀行掛失、換發證件並撥打 165 反詐騙專線備案，能將傷害降到最低。',
+                                isEnding: true,
+                                endingTitle: '驚險止血！及時守住最後防線',
+                                endingSummary: '雖然前面不小心洩漏了證件與存摺封面，但你在對方索取提款卡與密碼時及時清醒並採取補救措施。下次記得：求職階段連證件照片都不能隨便傳！'
+                            },
+                            {
+                                text: '為了多拿 3,000 元津貼，好吧，我現在去超商寄出提款卡...',
+                                scoreDelta: -50,
+                                feedbackType: 'danger',
+                                feedback: '帳戶已淪為詐騙集團洗錢工具！幾天後你的所有銀行帳戶都將被凍結成「警示帳戶」，並面臨被害人提告與法院傳票。',
+                                isEnding: true,
+                                endingTitle: '重大危機！成為詐騙集團「人頭帳戶」',
+                                endingSummary: '「提供帳戶、提款卡與密碼」是青少年最常誤觸的法律陷阱。無論對方理由多麼合理，金融卡片與密碼絕對不能交給任何人！'
+                            }
+                        ]
+                    }
+                }
+            },
+            social: {
+                id: 'social',
+                title: '情境二：社群私訊交友',
+                contactName: 'Ethan_0824',
+                contactTag: '陌生私訊請求',
+                contactBio: '臺北｜攝影・健身・偶爾研究金融趨勢 📈',
+                avatarText: 'E',
+                avatarColor: 'bg-rose-100 text-rose-700',
+                profileClues: [
+                    '大頭貼是極度帥氣的網紅等級照片，但每張生活照畫質偏低、背景常出現簡體字或國外街景（疑似盜圖）。',
+                    '追蹤人數很少，但追蹤了一大堆年輕學生帳號。',
+                    '對話一開始就過度熱情讚美，並試圖快速建立情感依賴。'
+                ],
+                startStep: 'step1',
+                steps: {
+                    step1: {
+                        incoming: [
+                            '嗨！不好意思突然私訊你～剛剛在推薦頁面滑到你的貼文，覺得你的拍照風格很有質感耶！',
+                            '我也是喜歡到處拍照的人，看你好像也是學生？交個朋友認識一下吧 😄'
+                        ],
+                        redFlag: '【話術警訊：無差別熱情搭訕】詐騙集團常利用盜來的帥哥美女照，針對學生族群發送複製貼上的讚美私訊，藉此降低戒心。',
+                        choices: [
+                            {
+                                text: '謝謝誇獎～你照片也很好看！對啊我還在讀書，你呢？',
+                                scoreDelta: -5,
+                                feedbackType: 'warning',
+                                feedback: '網路交友保持禮貌沒問題，但要記得對陌生人保留戒心，不要輕易透露就讀學校或個人生活作息喔！',
+                                nextStep: 'step2'
+                            },
+                            {
+                                text: '謝謝，不過我習慣只加認識的朋友喔。（忽略或刪除訊息）',
+                                scoreDelta: 10,
+                                feedbackType: 'safe',
+                                feedback: '非常健康的網路邊界感！不隨意與來路不明的陌生帳號深交，能直接阻絕 90% 以上的網路交友詐騙。',
+                                isEnding: true,
+                                endingTitle: '安全過關！堅守健康的網路社交邊界',
+                                endingSummary: '你沒有被表面的讚美迷惑，清楚區分現實朋友與網路陌生人，展現了極佳的數位自我保護意識。'
+                            }
+                        ]
+                    },
+                    step2: {
+                        incoming: [
+                            '（經過一週每天早安晚安的噓寒問暖後...）',
+                            '最近看你限動說想買新手機但零用錢不夠？其實我平時除了上課，還有跟著我表哥的團隊在操作「短期外匯數據」，每天花 10 分鐘看盤，已經幫自己存到好幾萬了！',
+                            '看在我們這麼投緣的份上，要不要我帶你一起操作？本金只要 2,000 元就能開始，保證穩賺不賠！'
+                        ],
+                        redFlag: '【核心警訊：情感鋪陳後的「穩賺不賠」投資】這是典型的「假交友真詐財（殺豬盤）」。先用關心建立信任，再切入「有內線/親友帶路」的投資話術。',
+                        choices: [
+                            {
+                                text: '哇真的假的！你對我好好喔，那我要去哪裡匯款跟註冊？',
+                                scoreDelta: -40,
+                                feedbackType: 'danger',
+                                feedback: '警覺心被情感攻勢瓦解了！金融市場沒有「穩賺不賠」，陌生網友主動帶你賺錢，背後幾乎都是假投資網站。',
+                                nextStep: 'step3_invest'
+                            },
+                            {
+                                text: '謝謝你的好意，但我對投資沒興趣，也不會在網路上跟認識不久的人有金錢往來。',
+                                scoreDelta: 10,
+                                feedbackType: 'safe',
+                                feedback: '非常冷靜且理智的回應！把「交友」與「金錢」明確切割，是防範感情/交友詐騙的黃金法則。',
+                                nextStep: 'step3_guilt'
+                            }
+                        ]
+                    },
+                    step3_guilt: {
+                        incoming: [
+                            '你這樣講我有點難過耶，我把你當成很特別的朋友才想幫你的，難道你連我都不信任嗎？',
+                            '不然這樣，你不用出錢，你先幫我把「你的網銀帳號密碼」借我，我用我的錢轉進去幫你操作，賺到我們一人一半，這樣總不會騙你了吧？'
+                        ],
+                        redFlag: '【雙重警訊：情緒勒索 + 借用銀行帳戶】利用「你不信任我」進行情緒勒索，並誘導你交出網銀帳密，實際上是把你的帳戶當成詐騙贓款的中轉站！',
+                        choices: [
+                            {
+                                text: '真正的朋友不會對我情緒勒索，更不會跟我要銀行帳密！我要封鎖你並檢舉帳號！',
+                                scoreDelta: 10,
+                                feedbackType: 'safe',
+                                feedback: '太棒了！你成功看穿了「情緒勒索」與「借帳戶洗錢」的雙重陷阱，果斷斷開連結！',
+                                isEnding: true,
+                                endingTitle: '完美識破！看穿假交友與情緒勒索',
+                                endingSummary: '詐騙集團擅長利用「信任感」與「罪惡感」讓人妥協。記住：網路上談感情可以，但只要提到「錢、投資、借帳戶」，一律直接封鎖！'
+                            },
+                            {
+                                text: '也是啦，他都說不用我出錢了，那我把網銀帳密給他幫我操作看看...',
+                                scoreDelta: -50,
+                                feedbackType: 'danger',
+                                feedback: '重大危機！一旦交出網銀帳密，詐騙集團會立刻把其他受害者的錢轉進你的帳戶再轉走，讓你成為警察第一個找上門的詐欺嫌疑人！',
+                                isEnding: true,
+                                endingTitle: '警報響起！誤信網友交出網銀帳密',
+                                endingSummary: '「不用出本金、借帳戶幫忙操作」是詐騙集團騙取人頭帳戶的慣用藉口。銀行帳密絕對不能交給任何人！'
+                            }
+                        ]
+                    },
+                    step3_invest: {
+                        incoming: [
+                            '太好了！你先點擊這個連結註冊「Global-FX 國際交易平台」，然後把 2,000 元轉帳到客服指定的個人銀行帳號儲值。',
+                            '對了，如果等一下行員或超商店員問你轉帳用途，記得說是「還朋友錢」，不要說是投資，免得他們囉嗦喔！'
+                        ],
+                        redFlag: '【終極警訊：個人帳戶收款 + 教唆欺騙行員】正規投資平台絕不會用「個人帳戶」收款，更不會教你對銀行行員或店員說謊！',
+                        choices: [
+                            {
+                                text: '還要騙店員說是還朋友錢？這完全就是新聞說的詐騙手法！我不匯了，馬上封鎖你！',
+                                scoreDelta: 10,
+                                feedbackType: 'good',
+                                feedback: '關鍵時刻及時醒悟！詐騙集團最怕銀行行員與超商店員的關懷提問，只要對方教你「隱瞞用途」，100% 就是詐騙！',
+                                isEnding: true,
+                                endingTitle: '及時煞車！識破假投資平台話術',
+                                endingSummary: '雖然一開始被網友的熱情打動，但你在最後匯款關頭發現「個人帳戶收款」與「教唆說謊」的破綻，成功守住了辛苦存下的零用錢！'
+                            },
+                            {
+                                text: '好，我現在就去轉帳 2,000 元，等著看獲利翻倍！',
+                                scoreDelta: -45,
+                                feedbackType: 'danger',
+                                feedback: '錢一旦匯出就進了詐騙集團口袋！假平台後台雖然會顯示你「賺大錢」，但當你想領出來時，對方會要求你再繳「手續費、保證金、稅金」，直到榨乾為止。',
+                                isEnding: true,
+                                endingTitle: '防線失守！落入假交友真投資陷阱',
+                                endingSummary: '網路交友切忌「暈船」與「貪念」。凡是網友推薦的投資平台、要求匯入個人帳戶或教你欺騙店員的，全都是詐騙！'
+                            }
+                        ]
+                    }
+                }
+            },
+            order: {
+                id: 'order',
+                title: '情境三：電商刷單小幫手',
+                contactName: '陳店長｜優選電商代營運',
+                contactTag: 'Threads 徵才私訊',
+                contactBio: '協助各大網拍衝銷量與五星好評｜在家接單',
+                avatarText: '陳',
+                avatarColor: 'bg-sky-100 text-sky-700',
+                profileClues: [
+                    'Threads 帳號沒有任何真實商品連結，全是「輕鬆賺零用錢、學生可」的招募貼文。',
+                    '聲稱替各大知名網拍「刷銷量」，但正規電商平台嚴格禁止虛假交易（刷單）。',
+                    '要求點擊外部陌生網址下單，而非官方購物 APP。'
+                ],
+                startStep: 'step1',
+                steps: {
+                    step1: {
+                        incoming: [
+                            '同學你好！我們正在招募「電商衝評價小幫手」，工作內容超簡單，只要幫忙在指定賣場下單衝人氣、給五星好評，每單現賺 10% 佣金！',
+                            '第一單新手體驗只要 300 元，你先墊付下單，5 分鐘後廠商就會把「本金 300 + 佣金 30 = 330 元」退回你帳戶，在家動動手指就能賺零用錢，要試試看嗎？'
+                        ],
+                        redFlag: '【話術警訊：先墊錢刷單賺佣金】「先代墊再退款」是典型刷單詐騙！詐騙集團前期真的會退幾十元小利讓你放下戒心（俗稱養套殺）。',
+                        choices: [
+                            {
+                                text: '才 300 元而且 5 分鐘就退錢，先做一單賺個飲料錢試試看！',
+                                scoreDelta: -20,
+                                feedbackType: 'warning',
+                                feedback: '你進入了詐騙集團的「養套殺」第一階段！雖然第一單通常真的會退款給你，但這是為了誘騙你投入更大的金額。',
+                                nextStep: 'step2_hooked'
+                            },
+                            {
+                                text: '幫網拍刷假評價不是違規行為嗎？而且為什麼不是在官方購物 APP 下單，還要先自己墊錢？',
+                                scoreDelta: 0,
+                                feedbackType: 'good',
+                                feedback: '非常棒的質疑！正規電商嚴禁虛假刷單，更不會要求兼職人員先自己墊付資金到外部網站。看看對方如何自圓其說。',
+                                nextStep: 'step2_inquiry'
+                            },
+                            {
+                                text: '任何要先自己墊錢的網路打工都是詐騙，我不會參加，謝謝！（直接封鎖）',
+                                scoreDelta: 10,
+                                feedbackType: 'safe',
+                                feedback: '觀念非常正確！正規兼職是「付出勞力領薪水」，絕不會要求「先墊付資金」，你直接阻斷了整個刷單詐騙套路！',
+                                isEnding: true,
+                                endingTitle: '成功識破！拒絕「假刷單」小利誘餌',
+                                endingSummary: '你一眼看穿「代墊衝評價」不合法也不合理，沒有被前期的幾十元甜頭誘惑，成功避開後續的連環大額詐騙！'
+                            }
+                        ]
+                    },
+                    step2_inquiry: {
+                        incoming: [
+                            '同學你很細心耶！因為我們走的是「廠商內部測試通道」，如果直接用官方 APP 容易被系統偵測到同 IP 灌水，所以才需要透過我們的專屬派單網頁下單喔～',
+                            '而且我們都有跟各大賣場簽保密協議，很多大學生每天下課花半小時就賺了五、六百元餐費。第一單真的只要 300 元，5 分鐘沒退錢你隨時封鎖我都沒關係，要不要先體驗一單看看？'
+                        ],
+                        redFlag: '【話術警訊：用「內部通道/保密協議」合理化假網站】詐騙集團會編造看似專業的理由解釋為何不使用正規平台，並用「小金額試試看沒損失」降低你的戒心！',
+                        choices: [
+                            {
+                                text: '聽他解釋好像也有道理，而且 300 元真的不多，沒退錢再封鎖他好了，先試一單看看...',
+                                scoreDelta: -20,
+                                feedbackType: 'warning',
+                                feedback: '小心！詐騙集團就是算準了「300 元大家賠得起」的心理，而且他們真的會退給你 330 元，好讓你相信這個假網站是真的！',
+                                nextStep: 'step2_hooked'
+                            },
+                            {
+                                text: '所謂「內部測試通道」就是來路不明的假網站！正規企業根本不會用這種方式運作，我不做了！',
+                                scoreDelta: 10,
+                                feedbackType: 'safe',
+                                feedback: '完全正確！不被偽專業術語唬住，堅持只在官方合法平台交易，成功守住荷包！',
+                                isEnding: true,
+                                endingTitle: '冷靜識破！看穿假派單網頁藉口',
+                                endingSummary: '詐騙集團擅長用「內部系統、保密協議」等名詞包裝假網站。只要脫離官方交易機制並要求先匯款，一律都是詐騙！'
+                            }
+                        ]
+                    },
+                    step2_hooked: {
+                        incoming: [
+                            '（5 分鐘後，你的帳戶真的收到了 330 元退款！）',
+                            '看吧！我們絕對誠信發薪，一分錢都不會少給你！🎉',
+                            '現在剛好有一組廠商釋出的「黃金三連單高佣金任務」，總金額 6,000 元，完成後連本帶利退你 7,200 元（現賺 1,200 元），但必須在 30 分鐘內連續完成三筆匯款才算數喔！'
+                        ],
+                        redFlag: '【重大警訊：金額暴增 + 限時連環單】利用第一單成功退款建立信任後，立刻拉高金額並用「限時完成否則前功盡棄」製造恐慌！',
+                        choices: [
+                            {
+                                text: '剛剛真的有收到 330 元，那我把存款 6,000 元轉過去賺這 1,200 元佣金！',
+                                scoreDelta: -45,
+                                feedbackType: 'danger',
+                                feedback: '糟糕！一旦匯出 6,000 元，對方就會說「你超時 1 秒導致系統卡單，必須再匯 12,000 元解凍才能拿回之前的錢」！',
+                                nextStep: 'step3_freeze'
+                            },
+                            {
+                                text: '突然變成 6,000 元還要連匯三筆太怪了，我只賺剛剛那 30 元就好，不做了！',
+                                scoreDelta: 10,
+                                feedbackType: 'good',
+                                feedback: '聰明地見好就收！識破了「小額放長線、大額收網」的關鍵轉折點，成功保住 6,000 元存款！',
+                                isEnding: true,
+                                endingTitle: '驚險脫身！看穿「養套殺」收網陷阱',
+                                endingSummary: '刷單詐騙最可怕的地方就是「前期真的會給錢」。你能冷靜察覺金額異常放大並果斷停止，非常值得嘉許！'
+                            }
+                        ]
+                    },
+                    step3_freeze: {
+                        incoming: [
+                            '系統顯示你剛剛操作太慢導致「商戶數據異常卡單」，目前 6,000 元已被系統凍結！',
+                            '請你再匯款 12,000 元進行「帳戶解凍驗證」，完成後會連同之前的 6,000 元一起退還，如果不處理，公司將告你毀損商譽！'
+                        ],
+                        redFlag: '【終極警訊：卡單凍結 + 法律恐嚇】要求再匯更多錢才能「解凍」或「領回本金」，並用提告恐嚇，是詐騙集團榨乾受害者的最後手段！',
+                        choices: [
+                            {
+                                text: '這是無底洞！再匯只會被騙更多！我不再匯任何一毛錢，我要保留對話紀錄去報警打 165！',
+                                scoreDelta: 5,
+                                feedbackType: 'good',
+                                feedback: '及時止損是唯一正解！千萬不要為了拿回已經被騙的錢而繼續匯款，立刻停止聯繫並向警方報案。',
+                                isEnding: true,
+                                endingTitle: '及時止損！拒絕再繳「解凍保證金」',
+                                endingSummary: '雖然損失了 6,000 元，但你沒有因為恐慌而繼續匯出 12,000 元。記住：正規系統絕不會要求「匯款解凍」，遇到立刻報警！'
+                            },
+                            {
+                                text: '天啊我不想被告，也想拿回 6,000 元，我趕快去跟朋友借 12,000 元匯過去...',
+                                scoreDelta: -35,
+                                feedbackType: 'danger',
+                                feedback: '千萬別再匯了！這筆 12,000 元匯出後，對方還會繼續編造「稅金、手續費、VIP 升級費」等理由，直到你身無分文為止。',
+                                isEnding: true,
+                                endingTitle: '嚴重受騙！陷入「解凍金」無底洞',
+                                endingSummary: '刷單詐騙利用人們「不甘心損失本金」與「害怕被告」的心理一再勒索。只要發現要「再匯錢才能領錢」，務必立刻停手！'
+                            }
+                        ]
+                    }
+                }
+            },
+            model: {
+                id: 'model',
+                title: '情境四：網拍星探試鏡邀約',
+                contactName: 'Bella｜時尚演藝經紀',
+                contactTag: 'IG 商業合作私訊',
+                contactBio: '新銳品牌服飾廣告選角｜發掘明日之星 ✨',
+                avatarText: 'B',
+                avatarColor: 'bg-purple-100 text-purple-700',
+                profileClues: [
+                    '自稱知名品牌選角經紀，卻使用私人免費信箱與未認證的新創 IG 帳號聯繫。',
+                    '對外貌過度吹捧，並強調「不用告訴爸媽，自己就能賺大錢」。',
+                    '試鏡流程不約在公開辦公場所，反而要求線上傳送「身形比例照片」。'
+                ],
+                startStep: 'step1',
+                steps: {
+                    step1: {
+                        incoming: [
+                            '哈囉同學！我是服飾品牌選角經紀 Bella～我們在滑 IG 時注意到你的氣質超好，非常符合我們下一季校園平面廣告的形象！',
+                            '這次是跟知名日韓潮牌合作，拍攝一天薪水就有 8,000 元喔！因為名額很趕，我們先做「線上初審」，不用告訴家人，直接線上傳資料給我就可以安排試鏡囉！'
+                        ],
+                        redFlag: '【話術警訊：高薪星探 + 刻意要你瞞著家人】正規經紀公司招募未成年或學生模特兒，必定會要求法定代理人（家長）知情並陪同簽約！',
+                        choices: [
+                            {
+                                text: '真的嗎？一天 8,000 元也太棒了吧！我都沒拍過平面廣告也可以嗎？請問線上初審需要準備什麼？',
+                                scoreDelta: -10,
+                                feedbackType: 'warning',
+                                feedback: '遇到「高薪演藝/網拍邀約」時要特別冷靜，先查證對方公司名稱，並且一定要讓家長或老師知道這件事！',
+                                nextStep: 'step2_photos'
+                            },
+                            {
+                                text: '聽起來蠻心動的，但我沒有經驗，想先問清楚你們經紀公司的全名、官網和拍攝地點在哪裡？',
+                                scoreDelta: 0,
+                                feedbackType: 'good',
+                                feedback: '很棒的警覺心！先詢問公司正式資訊與拍攝地點，能有效測試對方是否為正規經營的經紀團隊。',
+                                nextStep: 'step2_deflect'
+                            },
+                            {
+                                text: '謝謝邀約，但我還是學生，任何工作面試都會先跟爸媽討論並請他們陪同，請把正式合約寄給我們評估。',
+                                scoreDelta: 10,
+                                feedbackType: 'safe',
+                                feedback: '非常成熟且安全的做法！主動要求正式公司資訊並告知家長，能立刻嚇跑心懷不軌的假星探。',
+                                isEnding: true,
+                                endingTitle: '安全過關！謹慎查證並尋求家人把關',
+                                endingSummary: '正規演藝與網拍公司完全歡迎家長陪同面試。凡是叫你「偷偷來、別告訴父母」的邀約，背後都藏著極大風險！'
+                            }
+                        ]
+                    },
+                    step2_deflect: {
+                        incoming: [
+                            '我們是「星耀國際時尚傳媒」，因為是新成立的線上選角部門，目前都在信義區高級攝影棚接案，暫時沒有對外開放的實體門市喔～',
+                            '而且很多同學都是自己賺零用錢給爸媽驚喜的，你這麼大了應該可以自己做決定吧？名額真的只剩最後一位，你要不要先傳基本資料跟身形照卡位？'
+                        ],
+                        redFlag: '【話術警訊：激將法 + 製造名額緊迫感】利用「你長大了可以自己決定」刺激學生擺脫家長監督，並用「最後一位名額」催促你放棄思考！',
+                        choices: [
+                            {
+                                text: '說得也是，我確實想自己賺零用錢不想麻煩爸媽...那請問需要傳什麼身形照？',
+                                scoreDelta: -15,
+                                feedbackType: 'warning',
+                                feedback: '小心落入激將法圈套！真正尊重你的合作夥伴，絕不會催促你瞞著家人做決定。',
+                                nextStep: 'step2_photos'
+                            },
+                            {
+                                text: '連實體公司地址和公開作品集都沒有，還要我瞞著家人，這太可疑了，我不參加了！',
+                                scoreDelta: 10,
+                                feedbackType: 'safe',
+                                feedback: '非常清醒！你沒有被對方的激將法影響，堅守「透明公開、家人知情」的安全原則！',
+                                isEnding: true,
+                                endingTitle: '成功識破！拒絕不透明的星探邀約',
+                                endingSummary: '面對來路不明的演藝或網拍邀約，只要對方無法提供可查證的公司登記資訊，或刻意阻撓你與家人商量，一律果斷拒絕！'
+                            }
+                        ]
+                    },
+                    step2_photos: {
+                        incoming: [
+                            '初審很簡單，為了確認服裝版型合不合身，請你先拍幾張「穿著貼身衣物或清涼一點的全身照」傳給我評估身材比例，放心，只有我會看，看完就刪！',
+                            '另外確定錄取的話，需要自費 15,000 元拍攝「專業宣傳照卡」，這筆錢第一次領薪水就會全額退還喔！'
+                        ],
+                        redFlag: '【雙重重大警訊：索取私密清涼照 + 強迫自費拍宣傳照】這是結合「數位性暴力（私密照勒索）」與「假試鏡真推銷」的雙重陷阱！照片一旦傳出就永遠無法控制！',
+                        choices: [
+                            {
+                                text: '絕對不行！拍私密清涼照太危險了，而且正規試鏡根本不會叫人先花一萬五！我要截圖檢舉並封鎖你！',
+                                scoreDelta: 10,
+                                feedbackType: 'safe',
+                                feedback: '完全正確！任何情況下都絕不拍攝或傳送私密、清涼照片給任何人，也絕不簽署要自己先掏錢的經紀合約！',
+                                isEnding: true,
+                                endingTitle: '堅守底線！成功防範私密照與試鏡詐騙',
+                                endingSummary: '你精準辨識出「線上索取清涼照」的性剝削風險，以及「先自費拍宣傳照」的求職陷阱，完美保護了自己的身體隱私與荷包！'
+                            },
+                            {
+                                text: '不要拍清涼照啦，那我只傳平常穿便服的照片，然後先轉帳 15,000 元拍宣傳照可以嗎？',
+                                scoreDelta: -35,
+                                feedbackType: 'danger',
+                                feedback: '雖然守住了身體隱私，但仍落入了「假試鏡真詐財」陷阱！一旦匯出 15,000 元宣傳照費，對方就會人間蒸發或繼續以各種名目收費！',
+                                isEnding: true,
+                                endingTitle: '防線失守！誤信「先自費拍宣傳照」騙局',
+                                endingSummary: '求職防詐第一條就是「不繳錢」！正規模特兒或網拍試鏡絕不會要求求職者先掏出上萬元拍攝宣傳卡。'
+                            },
+                            {
+                                text: '為了拿到 8,000 元的工作，他都說看完就刪了，應該沒關係吧，我先在房間拍幾張傳過去...',
+                                scoreDelta: -50,
+                                feedbackType: 'danger',
+                                feedback: '極度危險！照片一傳出，對方立刻會用這些照片威脅你「如果不轉帳或配合拍攝更多私密影片，就把照片傳給你的同學跟學校」！',
+                                isEnding: true,
+                                endingTitle: '嚴重危機！面臨「私密影像勒索」風險',
+                                endingSummary: '網路世界沒有「看完就刪」這回事！若不幸遇上私密照威脅，請立刻截圖保留證據、停止匯款，並撥打 113 保護專線或 110 報警求助！'
+                            }
+                        ]
+                    }
+                }
+            },
+            friend: {
+                id: 'friend',
+                title: '情境五：學長私訊借錢與投票',
+                contactName: '宇軒學長（社團幹部）',
+                contactTag: '已追蹤好友',
+                contactBio: '熱音社｜努力準備學測中 🎸',
+                avatarText: '宇',
+                avatarColor: 'bg-emerald-100 text-emerald-700',
+                profileClues: [
+                    '雖然是原本就認識的學長帳號，但說話語氣突然變得生硬、急促，平常用字習慣也不同。',
+                    '要求點擊陌生網頁進行「LINE 投票」並輸入帳號密碼與簡訊驗證碼。',
+                    '借錢時提供的銀行帳戶戶名「不是學長本人的名字」，卻編理由說是朋友的帳戶。'
+                ],
+                startStep: 'step1',
+                steps: {
+                    step1: {
+                        incoming: [
+                            '嗨！在忙嗎？拜託幫我一個忙，我表妹參加學校攝影比賽差幾票就第一名了，幫我點這個連結投 3 號一票（傳送 bit.ly 短網址），登入你的 LINE 帳號投完截圖給我！'
+                        ],
+                        redFlag: '【釣魚警訊：好友傳來要求登入 LINE 的投票連結】這是典型的「LINE 帳號盜取釣魚網站」！一旦在假網頁輸入帳密與簡訊驗證碼，你的帳號下一秒就會被盜走去騙其他人！',
+                        choices: [
+                            {
+                                text: '好啊學長沒問題，平常社團你也很照顧我，我現在就點進去輸入 LINE 帳密幫你投！',
+                                scoreDelta: -40,
+                                feedbackType: 'danger',
+                                feedback: '糟糕！那是假冒 LINE 登入頁面的釣魚網站，你的帳號密碼與簡訊認證碼已經被駭客竊取，學長的帳號其實早就被盜了！',
+                                isEnding: true,
+                                endingTitle: '帳號遭盜！落入「假投票真釣魚」陷阱',
+                                endingSummary: '看到親友傳來「幫忙投票、領免費貼圖」且要求輸入帳密與簡訊驗證碼的連結，100% 是盜帳號釣魚網站！'
+                            },
+                            {
+                                text: '咦，為什麼投票還要另外輸入 LINE 密碼跟手機驗證碼？學長你這個網址安全嗎？',
+                                scoreDelta: 5,
+                                feedbackType: 'good',
+                                feedback: '敏銳度很棒！正常網頁投票絕不會要求輸入通訊軟體密碼與簡訊驗證碼，這已經是極明顯的釣魚警訊。',
+                                nextStep: 'step2_borrow'
+                            },
+                            {
+                                text: '這連結要輸入 LINE 帳密跟驗證碼好怪喔，學長你帳號是不是被盜了？（改用 IG 或打電話確認）',
+                                scoreDelta: 10,
+                                feedbackType: 'safe',
+                                feedback: '太機警了！直接跳脫目前對話框、改用其他管道聯繫本人，是防範帳號被盜詐騙的最佳做法！',
+                                nextStep: 'step2_borrow'
+                            }
+                        ]
+                    },
+                    step2_borrow: {
+                        incoming: [
+                            '（幾分鐘後，該帳號又急忙傳來訊息...）',
+                            '我沒被盜啦，那個是活動官方的防灌票驗證！對了，先不管投票了，我現在人在外面幫社團買器材，網銀剛好轉帳限額到了，你可以先幫我轉 3,000 元到我朋友的帳戶嗎？我晚上回家馬上轉還給你，超急的！'
+                        ],
+                        redFlag: '【核心警訊：親友緊急借錢 + 匯入他人帳戶】詐騙集團盜取帳號後，接著就會用「急用借錢」行騙，且收款帳戶一定是「非本人名字」的人頭帳戶！',
+                        choices: [
+                            {
+                                text: '既然是幫社團買器材這麼急，3,000 元我先用網銀轉過去幫忙，記得晚上還我喔！',
+                                scoreDelta: -45,
+                                feedbackType: 'danger',
+                                feedback: '被騙了！學長本人根本不知情，你轉出的 3,000 元直接進了詐騙集團的人頭帳戶裡！',
+                                isEnding: true,
+                                endingTitle: '防線失守！誤信被盜帳號的借錢訊息',
+                                endingSummary: '凡是親友透過網路私訊「借錢、代買點數卡、代收簡訊驗證碼」，務必透過「電話通話」或「見面」二次確認本人！'
+                            },
+                            {
+                                text: '要我轉錢可以，那你現在先錄一段「語音訊息」或接我一通語音電話，我確認是你本人我就轉！',
+                                scoreDelta: 10,
+                                feedbackType: 'safe',
+                                feedback: '超聰明的反制測試！詐騙集團無法模仿學長的真實聲音，一聽到要通話或語音就會立刻露餡或封鎖你！',
+                                nextStep: 'step3_excuse'
+                            },
+                            {
+                                text: '網路借錢還指定匯到陌生人帳戶，絕對是被盜帳號！我不匯款，直接打電話或去教室找學長本人確認！',
+                                scoreDelta: 10,
+                                feedbackType: 'safe',
+                                feedback: '滿分應對！透過「其他管道（電話/當面）」進行二次查證，是破解所有冒充親友詐騙的終極武器！',
+                                isEnding: true,
+                                endingTitle: '完美防禦！成功識破好友帳號被盜詐騙',
+                                endingSummary: '你不但守住了自己的 LINE 帳號與 3,000 元存款，還能及時通知學長趕快取回帳號，避免更多同學受害！'
+                            }
+                        ]
+                    },
+                    step3_excuse: {
+                        incoming: [
+                            '哎呀我現在喉嚨痛發不出聲音，而且店裡很吵不方便接電話啦！你怎麼連學長都不相信，趕快轉帳過來，老闆在等我結帳了！'
+                        ],
+                        redFlag: '【終極警訊：拒絕語音通話 + 催促情緒勒索】只要涉及借錢卻「死都不肯接電話或語音」，100% 就是帳號被盜的詐騙集團！',
+                        choices: [
+                            {
+                                text: '喉嚨痛連講一句話都不行還催我轉帳，這絕對是詐騙集團！我要立刻通知班上跟社團群組大家不要被騙！',
+                                scoreDelta: 10,
+                                feedbackType: 'safe',
+                                feedback: '太棒了！不僅保護了自己，還主動在社群中提醒其他同學注意學長帳號被盜，發揮了最強大的校園反詐力量！',
+                                isEnding: true,
+                                endingTitle: '守護全體！成功揭穿盜帳號借錢騙局',
+                                endingSummary: '你運用「語音通話驗證」逼出詐騙集團的破綻，並及時通報同學防範，展現了極高的數位公民素養！'
+                            },
+                            {
+                                text: '好吧，既然在店裡很吵不方便講電話，那我還是趕快先把 3,000 元轉過去幫他結帳...',
+                                scoreDelta: -45,
+                                feedbackType: 'danger',
+                                feedback: '太可惜了！明明已經用「要求語音」測試出對方不敢講話的破綻，卻在最後一刻心軟匯款，錢已經被轉進人頭帳戶了！',
+                                isEnding: true,
+                                endingTitle: '功虧一簣！在最後關頭心軟匯款',
+                                endingSummary: '記住鐵則：在網路上借錢給親友，沒有「親耳聽到聲音」或「親眼見到本人」之前，一毛錢都不能轉出！'
+                            }
+                        ]
+                    }
+                }
+            }
+        };
+
+        // ==========================================
+        // 2. 狀態管理與核心互動邏輯
+        // ==========================================
+        let currentScenario = null;
+        let currentStepId = null;
+        let safetyScore = 100;
+        let hasInspectedCurrentProfile = false; // 追蹤目前關卡是否已閱讀過「檢查帳號資訊」
+        const completedScenarios = new Set();
+        const scenarioScores = {}; // 紀錄各關卡最終得分
+        const scenarioHistory = {}; // 保存各關卡完成時的對話紀錄 HTML、最終分數與結局資料
+        const scenarioOrder = ['job', 'social', 'order', 'model', 'friend'];
+
+        let endingCountdownInterval = null;
+        let endingAutoModalTimeout = null;
+        let messageRenderTimeouts = [];
+
+        function safeCreateIcons() {
+            if (window.lucide && typeof window.lucide.createIcons === 'function') {
+                window.lucide.createIcons();
+            }
+        }
+
+        function clearEndingTimers() {
+            if (endingCountdownInterval) {
+                clearInterval(endingCountdownInterval);
+                endingCountdownInterval = null;
+            }
+            if (endingAutoModalTimeout) {
+                clearTimeout(endingAutoModalTimeout);
+                endingAutoModalTimeout = null;
+            }
+            messageRenderTimeouts.forEach(t => clearTimeout(t));
+            messageRenderTimeouts = [];
+        }
+
+        function getNextScenarioKey(currentKey) {
+            const uncompleted = scenarioOrder.find(k => k !== currentKey && !completedScenarios.has(k));
+            if (uncompleted) return uncompleted;
+            const currentIndex = scenarioOrder.indexOf(currentKey);
+            return scenarioOrder[(currentIndex + 1) % scenarioOrder.length];
+        }
+
+        function updateSafetyUI() {
+            safetyScore = Math.max(0, Math.min(100, safetyScore));
+            const barEl = document.getElementById('safety-bar');
+            const textEl = document.getElementById('safety-score-text');
+            const descEl = document.getElementById('safety-status-desc');
+            if (!barEl || !textEl || !descEl) return;
+
+            barEl.style.width = `${safetyScore}%`;
+            textEl.textContent = `${safetyScore} / 100`;
+
+            barEl.classList.remove('bg-emerald-400', 'bg-amber-400', 'bg-rose-500');
+            textEl.classList.remove('text-emerald-400', 'text-amber-400', 'text-rose-400');
+
+            if (safetyScore >= 80) {
+                barEl.classList.add('bg-emerald-400');
+                textEl.classList.add('text-emerald-400');
+                descEl.textContent = '警覺性極佳！持續保持查證習慣。';
+            } else if (safetyScore >= 50) {
+                barEl.classList.add('bg-amber-400');
+                textEl.classList.add('text-amber-400');
+                descEl.textContent = '出現風險警訊！請務必提高警覺並再三查證。';
+            } else {
+                barEl.classList.add('bg-rose-500');
+                textEl.classList.add('text-rose-400');
+                descEl.textContent = '高度危險！極可能遭受財產損失或成為人頭帳戶！';
+            }
+        }
+
+        function startScenario(scenarioKey, forceRestart = false) {
+            clearEndingTimers();
+            currentScenario = scenarios[scenarioKey];
+            if (!currentScenario) return;
+
+            // 更新左側情境按鈕高亮狀態
+            scenarioOrder.forEach(key => {
+                const btn = document.getElementById(`btn-scenario-${key}`);
+                if (btn) {
+                    if (key === scenarioKey) {
+                        btn.classList.add('bg-slate-800', 'border-indigo-500/60');
+                        btn.classList.remove('border-transparent');
+                    } else {
+                        btn.classList.remove('bg-slate-800', 'border-indigo-500/60');
+                        btn.classList.add('border-transparent');
+                    }
+                }
+            });
+
+            // 切換右側畫面
+            document.getElementById('welcome-screen').classList.add('hidden');
+            const chatContainer = document.getElementById('chat-container');
+            chatContainer.classList.remove('hidden');
+            chatContainer.classList.add('flex');
+
+            // 設定聯絡人資訊
+            const avatarEl = document.getElementById('contact-avatar');
+            avatarEl.textContent = currentScenario.avatarText;
+            avatarEl.className = `w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg shrink-0 ${currentScenario.avatarColor}`;
+            document.getElementById('contact-name').textContent = currentScenario.contactName;
+            document.getElementById('contact-tag').textContent = currentScenario.contactTag;
+            document.getElementById('contact-bio').textContent = currentScenario.contactBio;
+            document.getElementById('typing-indicator').classList.add('hidden');
+
+            // 若該關卡已完成且非強制重新開始，直接還原上次作答對話並跳出本關結算結果
+            if (!forceRestart && completedScenarios.has(scenarioKey) && scenarioHistory[scenarioKey]) {
+                const saved = scenarioHistory[scenarioKey];
+                hasInspectedCurrentProfile = true;
+                safetyScore = saved.finalScore;
+                updateSafetyUI();
+
+                // 取消右上角閃爍提醒
+                const inspectBtn = document.getElementById('btn-inspect-profile');
+                const inspectPing = document.getElementById('inspect-ping');
+                if (inspectBtn) inspectBtn.classList.remove('ring-2', 'ring-amber-400', 'bg-amber-100');
+                if (inspectPing) inspectPing.classList.add('hidden');
+
+                // 還原當時完整的對話紀錄與底部控制列
+                const msgArea = document.getElementById('messages-area');
+                msgArea.innerHTML = saved.messagesHtml;
+                msgArea.scrollTop = msgArea.scrollHeight;
+                safeCreateIcons();
+
+                renderEndingControls(saved.endingChoice, false);
+                showEndingModal(saved.endingChoice);
+                return;
+            }
+
+            currentStepId = currentScenario.startStep;
+            safetyScore = 100;
+            hasInspectedCurrentProfile = false;
+            updateSafetyUI();
+
+            // 高亮提示右上角「檢查帳號資訊」按鈕
+            const inspectBtn = document.getElementById('btn-inspect-profile');
+            const inspectPing = document.getElementById('inspect-ping');
+            if (inspectBtn) {
+                inspectBtn.classList.add('ring-2', 'ring-amber-400', 'bg-amber-100');
+            }
+            if (inspectPing) {
+                inspectPing.classList.remove('hidden');
+            }
+
+            // 清空舊對話
+            document.getElementById('messages-area').innerHTML = '';
+
+            // 系統提示橫幅與強制先查帳號引導卡片
+            appendSystemBanner(`已進入「${currentScenario.title}」`);
+            appendPreCheckGate();
+        }
+
+        // 強制先檢查帳號資訊的引導門檻
+        function appendPreCheckGate() {
+            const msgArea = document.getElementById('messages-area');
+            const choicesArea = document.getElementById('choices-area');
+            const container = document.getElementById('choices-buttons');
+
+            const gateDiv = document.createElement('div');
+            gateDiv.id = 'pre-check-gate-card';
+            gateDiv.className = 'mx-auto max-w-md bg-amber-50 border border-amber-300 rounded-2xl p-4 text-center shadow-sm animate-msg';
+            gateDiv.innerHTML = `
+                <div class="w-10 h-10 bg-amber-100 text-amber-600 rounded-xl flex items-center justify-center mx-auto mb-2.5">
+                    <i data-lucide="search-check" class="w-5 h-5"></i>
+                </div>
+                <h4 class="font-bold text-amber-900 text-sm mb-1">安全第一關：先查證帳號背景！</h4>
+                <p class="text-xs text-amber-800 leading-relaxed mb-3">
+                    在開始回覆陌生或可疑私訊前，請先點擊右上角的<strong>「檢查帳號資訊」</strong>按鈕（或下方按鈕），檢視對方的帳號異常線索。
+                </p>
+                <button type="button" data-action="inspect-profile" class="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-semibold text-xs rounded-xl transition-colors inline-flex items-center gap-1.5 shadow-sm">
+                    <i data-lucide="search" class="w-3.5 h-3.5"></i> 立即檢查帳號資訊
+                </button>
+            `;
+            msgArea.appendChild(gateDiv);
+            msgArea.scrollTop = msgArea.scrollHeight;
+
+            const headerLabel = choicesArea.querySelector('p');
+            if (headerLabel) {
+                headerLabel.innerHTML = `<i data-lucide="lock" class="w-3.5 h-3.5 text-amber-500"></i> 請先閱讀右上角「檢查帳號資訊」後解鎖對話：`;
+            }
+            container.innerHTML = `
+                <button type="button" data-action="inspect-profile" class="w-full py-2.5 px-4 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 rounded-xl font-semibold text-xs sm:text-sm transition-colors flex items-center justify-center gap-2">
+                    <i data-lucide="search" class="w-4 h-4"></i> 點我開啟「檢查帳號資訊」開始挑戰
+                </button>
+            `;
+            choicesArea.classList.remove('hidden', 'opacity-50', 'pointer-events-none');
+            safeCreateIcons();
+        }
+
+        // 渲染指定步驟的對方訊息與選項
+        function renderStep(stepId) {
+            const step = currentScenario.steps[stepId];
+            if (!step) return;
+
+            const choicesArea = document.getElementById('choices-area');
+            const typingEl = document.getElementById('typing-indicator');
+            const headerLabel = choicesArea.querySelector('p');
+            if (headerLabel) {
+                headerLabel.innerHTML = `<i data-lucide="corner-down-right" class="w-3.5 h-3.5 text-indigo-500"></i> 請選擇你的回應方式：`;
+            }
+
+            // 對方輸入訊息期間，先隱藏底部選項區塊
+            choicesArea.classList.add('hidden');
+            typingEl.classList.remove('hidden');
+
+            const messages = step.incoming || [];
+            messages.forEach((text, index) => {
+                const t = setTimeout(() => {
+                    appendIncomingMessage(text);
+                    if (index === messages.length - 1) {
+                        typingEl.classList.add('hidden');
+                        if (step.redFlag) {
+                            appendRedFlagCard(step.redFlag);
+                        }
+                        renderChoices(step.choices);
+                        // 對方訊息全數跳出後，再顯示新的選項區塊
+                        choicesArea.classList.remove('hidden', 'opacity-50', 'pointer-events-none');
+                        choicesArea.classList.add('animate-msg');
+                    }
+                }, (index + 1) * 650);
+                messageRenderTimeouts.push(t);
+            });
+        }
+
+        function appendSystemBanner(text) {
+            const msgArea = document.getElementById('messages-area');
+            const div = document.createElement('div');
+            div.className = 'text-center my-2 animate-msg';
+            div.innerHTML = `<span class="inline-block px-3 py-1 rounded-full bg-slate-200/80 text-slate-600 text-[11px] font-medium">${text}</span>`;
+            msgArea.appendChild(div);
+            msgArea.scrollTop = msgArea.scrollHeight;
+        }
+
+        function appendIncomingMessage(text) {
+            const msgArea = document.getElementById('messages-area');
+            const wrapper = document.createElement('div');
+            wrapper.className = 'flex items-end gap-2.5 animate-msg';
+            wrapper.innerHTML = `
+                <div class="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${currentScenario.avatarColor}">
+                    ${currentScenario.avatarText}
+                </div>
+                <div class="bg-white border border-slate-200 text-slate-800 px-4 py-3 rounded-2xl rounded-bl-none shadow-sm max-w-[85%] sm:max-w-[78%] text-sm leading-relaxed">
+                    ${text}
+                </div>
+            `;
+            msgArea.appendChild(wrapper);
+            msgArea.scrollTop = msgArea.scrollHeight;
+        }
+
+        function appendOutgoingMessage(text) {
+            const msgArea = document.getElementById('messages-area');
+            const wrapper = document.createElement('div');
+            wrapper.className = 'flex justify-end animate-msg';
+            wrapper.innerHTML = `
+                <div class="bg-indigo-600 text-white px-4 py-3 rounded-2xl rounded-br-none shadow-sm max-w-[85%] sm:max-w-[78%] text-sm leading-relaxed">
+                    ${text}
+                </div>
+            `;
+            msgArea.appendChild(wrapper);
+            msgArea.scrollTop = msgArea.scrollHeight;
+        }
+
+        function appendRedFlagCard(flagText) {
+            const msgArea = document.getElementById('messages-area');
+            const card = document.createElement('div');
+            card.className = 'bg-amber-50/90 border-l-4 border-amber-500 rounded-r-2xl p-3.5 text-xs text-amber-900 leading-relaxed shadow-sm animate-msg max-w-[92%] sm:max-w-[85%]';
+            card.innerHTML = `
+                <div class="flex items-start gap-2">
+                    <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-600 shrink-0 mt-0.5"></i>
+                    <div>${flagText}</div>
+                </div>
+            `;
+            msgArea.appendChild(card);
+            msgArea.scrollTop = msgArea.scrollHeight;
+            safeCreateIcons();
+        }
+
+        function appendFeedbackCard(choice) {
+            const msgArea = document.getElementById('messages-area');
+            const styles = {
+                safe: { bg: 'bg-emerald-50 border-emerald-500 text-emerald-900', icon: 'shield-check', iconColor: 'text-emerald-600', label: '安全判斷' },
+                good: { bg: 'bg-sky-50 border-sky-500 text-sky-900', icon: 'thumbs-up', iconColor: 'text-sky-600', label: '警覺回應' },
+                warning: { bg: 'bg-amber-50 border-amber-500 text-amber-900', icon: 'alert-circle', iconColor: 'text-amber-600', label: '風險提醒' },
+                danger: { bg: 'bg-rose-50 border-rose-500 text-rose-900', icon: 'shield-alert', iconColor: 'text-rose-600', label: '高風險行為' }
+            };
+            const st = styles[choice.feedbackType] || styles.warning;
+            const deltaText = choice.scoreDelta > 0 ? `+${choice.scoreDelta} 分` : (choice.scoreDelta < 0 ? `${choice.scoreDelta} 分` : '0 分');
+
+            const card = document.createElement('div');
+            card.className = `${st.bg} border-l-4 rounded-r-2xl p-3.5 text-xs leading-relaxed shadow-sm animate-msg max-w-[92%] sm:max-w-[85%] ml-auto`;
+            card.innerHTML = `
+                <div class="flex items-start gap-2">
+                    <i data-lucide="${st.icon}" class="w-4 h-4 ${st.iconColor} shrink-0 mt-0.5"></i>
+                    <div>
+                        <div class="font-bold mb-0.5">${st.label}（安全指數 ${deltaText}）</div>
+                        <div>${choice.feedback}</div>
+                    </div>
+                </div>
+            `;
+            msgArea.appendChild(card);
+            msgArea.scrollTop = msgArea.scrollHeight;
+            safeCreateIcons();
+        }
+
+        function renderChoices(choices) {
+            const container = document.getElementById('choices-buttons');
+            container.innerHTML = '';
+            (choices || []).forEach(choice => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'w-full text-left p-3 rounded-xl border border-slate-200 hover:border-indigo-400 hover:bg-indigo-50/60 text-xs sm:text-sm text-slate-700 font-medium transition-all flex items-start gap-2.5 group';
+                btn.innerHTML = `
+                    <span class="w-5 h-5 rounded-full bg-slate-100 group-hover:bg-indigo-600 group-hover:text-white text-slate-500 flex items-center justify-center text-xs font-bold shrink-0 mt-0.5 transition-colors">›</span>
+                    <span class="leading-relaxed">${choice.text}</span>
+                `;
+                btn.addEventListener('click', () => handleChoice(choice));
+                container.appendChild(btn);
+            });
+            safeCreateIcons();
+        }
+
+        function handleChoice(choice) {
+            appendOutgoingMessage(choice.text);
+            safetyScore += choice.scoreDelta;
+            updateSafetyUI();
+            appendFeedbackCard(choice);
+
+            if (choice.isEnding) {
+                completedScenarios.add(currentScenario.id);
+                // 紀錄該關卡得分（若重複挑戰則保留最高分）
+                const prevScore = scenarioScores[currentScenario.id];
+                scenarioScores[currentScenario.id] = prevScore !== undefined ? Math.max(prevScore, safetyScore) : safetyScore;
+
+                // 保存本次完整作答紀錄與結果，供第二次點擊側邊選項時直接檢視
+                scenarioHistory[currentScenario.id] = {
+                    messagesHtml: document.getElementById('messages-area').innerHTML,
+                    finalScore: safetyScore,
+                    endingChoice: choice
+                };
+
+                const badge = document.getElementById(`badge-${currentScenario.id}`);
+                if (badge) {
+                    badge.textContent = `${scenarioScores[currentScenario.id]}分`;
+                    badge.classList.remove('hidden');
+                }
+
+                // 若 5 個情境皆已完成，顯示左側總結算快捷按鈕
+                if (completedScenarios.size === scenarioOrder.length) {
+                    const banner = document.getElementById('final-summary-banner');
+                    if (banner) banner.classList.remove('hidden');
+                }
+
+                // 準備背景控制列，並立即跳出本關結算畫面
+                renderEndingControls(choice, false);
+                showEndingModal(choice);
+            } else if (choice.nextStep) {
+                currentStepId = choice.nextStep;
+                renderStep(currentStepId);
+            }
+        }
+
+        // 在對話底部渲染「停留閱讀倒數（60秒）」與「手動繼續挑戰下一關」控制列
+        function renderEndingControls(choice, startCountdown = false) {
+            clearEndingTimers();
+            const choicesArea = document.getElementById('choices-area');
+            const container = document.getElementById('choices-buttons');
+            const allCompleted = completedScenarios.size === scenarioOrder.length;
+            const otherScenarioKey = getNextScenarioKey(currentScenario.id);
+            const otherScenarioTitle = scenarios[otherScenarioKey].title;
+            let remainingSeconds = 60;
+
+            const headerLabel = choicesArea.querySelector('p');
+            if (headerLabel) {
+                headerLabel.innerHTML = startCountdown
+                    ? `<i data-lucide="clock" class="w-3.5 h-3.5 text-emerald-600"></i> <span id="ending-countdown-label">停留回顧中：畫面將停留 <strong>60</strong> 秒供回顧對話，或隨時手動切換：</span>`
+                    : `<i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-emerald-600"></i> <span id="ending-countdown-label">本關已完成！可隨時回顧對話、查看結算或挑戰下一關：</span>`;
+            }
+
+            const primaryBtnHtml = allCompleted
+                ? `<button type="button" id="btn-final-summary" class="flex-1 py-2.5 px-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl font-bold text-xs sm:text-sm transition-colors flex items-center justify-center gap-1.5 shadow-sm">
+                        <i data-lucide="trophy" class="w-4 h-4"></i> 完成全 5 關！查看綜合安全指數
+                   </button>`
+                : `<button type="button" id="btn-next-stage" class="flex-1 py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-semibold text-xs sm:text-sm transition-colors flex items-center justify-center gap-1.5 shadow-sm">
+                        繼續挑戰：${otherScenarioTitle} <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                   </button>`;
+
+            container.innerHTML = `
+                <div class="flex flex-col sm:flex-row gap-2 pt-1">
+                    ${primaryBtnHtml}
+                    <button type="button" id="btn-view-report" class="py-2.5 px-4 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-xl font-semibold text-xs sm:text-sm transition-colors flex items-center justify-center gap-1.5">
+                        <i data-lucide="file-check-2" class="w-4 h-4"></i> 本關結算
+                    </button>
+                    <button type="button" id="btn-retry-stage" class="py-2.5 px-4 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-xl font-semibold text-xs sm:text-sm transition-colors flex items-center justify-center gap-1.5">
+                        <i data-lucide="rotate-ccw" class="w-4 h-4"></i> 重新挑戰
+                    </button>
+                </div>
+            `;
+
+            choicesArea.classList.remove('hidden', 'opacity-50', 'pointer-events-none');
+            safeCreateIcons();
+
+            if (allCompleted) {
+                document.getElementById('btn-final-summary').addEventListener('click', () => {
+                    clearEndingTimers();
+                    showFinalSummaryModal();
+                });
+            } else {
+                document.getElementById('btn-next-stage').addEventListener('click', () => {
+                    clearEndingTimers();
+                    startScenario(otherScenarioKey);
+                });
+            }
+
+            document.getElementById('btn-view-report').addEventListener('click', () => {
+                clearEndingTimers();
+                showEndingModal(choice);
+            });
+            document.getElementById('btn-retry-stage').addEventListener('click', () => {
+                clearEndingTimers();
+                startScenario(currentScenario.id, true);
+            });
+
+            if (startCountdown) {
+                endingCountdownInterval = setInterval(() => {
+                    remainingSeconds -= 1;
+                    const labelEl = document.getElementById('ending-countdown-label');
+                    if (labelEl) {
+                        if (remainingSeconds > 0) {
+                            labelEl.innerHTML = `停留回顧中：畫面將停留 <strong>${remainingSeconds}</strong> 秒供回顧對話，或隨時手動切換：`;
+                        } else {
+                            labelEl.innerHTML = allCompleted
+                                ? `停留時間結束，已為你開啟全 5 關綜合安全指數報告：`
+                                : `停留時間結束，已為你開啟結算報告（仍可隨時切換關卡）：`;
+                        }
+                    }
+                    if (remainingSeconds <= 0) {
+                        clearEndingTimers();
+                        if (allCompleted) {
+                            showFinalSummaryModal();
+                        } else {
+                            showEndingModal(choice);
+                        }
+                    }
+                }, 1000);
+            }
+        }
+
+        // ==========================================
+        // 3. 彈出視窗功能 (帳號偵查 / 結局結算 / 全關卡總結算 / 防詐錦囊)
+        // ==========================================
+        function openModal(htmlContent) {
+            const overlay = document.getElementById('modal-overlay');
+            const content = document.getElementById('modal-content');
+            content.innerHTML = htmlContent;
+            overlay.classList.remove('hidden');
+            overlay.classList.add('flex');
+            safeCreateIcons();
+        }
+
+        function closeModal() {
+            const overlay = document.getElementById('modal-overlay');
+            overlay.classList.add('hidden');
+            overlay.classList.remove('flex');
+        }
+
+        function showFinalSummaryModal() {
+            const totalMax = scenarioOrder.length * 100;
+            const totalEarned = scenarioOrder.reduce((sum, key) => sum + (scenarioScores[key] ?? 0), 0);
+            const overallRate = Math.round((totalEarned / totalMax) * 100);
+
+            let rankTitle = '';
+            let rankBadgeClass = '';
+            let scoreBoxClass = '';
+            let scoreNumberClass = '';
+            let rankAdvice = '';
+
+            if (overallRate >= 90) {
+                rankTitle = 'SSS 級・校園反詐守護神';
+                rankBadgeClass = 'bg-emerald-100 text-emerald-700 border-emerald-200';
+                scoreBoxClass = 'bg-gradient-to-br from-emerald-50 to-teal-50 border-emerald-300';
+                scoreNumberClass = 'text-emerald-600';
+                rankAdvice = '太強了！你具備極高的數位敏銳度與邊界感，不僅能精準識破求職、投資與網拍陷阱，還能保護身邊親友不被詐騙！';
+            } else if (overallRate >= 75) {
+                rankTitle = 'A 級・防詐警覺者';
+                rankBadgeClass = 'bg-sky-100 text-sky-700 border-sky-200';
+                scoreBoxClass = 'bg-gradient-to-br from-sky-50 to-indigo-50 border-sky-300';
+                scoreNumberClass = 'text-sky-600';
+                rankAdvice = '表現很不錯！大多數情況下你都能守住底線，但面對「前期小利誘惑」或「親友緊急請求」時，記得再多一秒鐘查證喔！';
+            } else if (overallRate >= 50) {
+                rankTitle = 'B 級・容易心軟的潛在目標';
+                rankBadgeClass = 'bg-amber-100 text-amber-700 border-amber-200';
+                scoreBoxClass = 'bg-gradient-to-br from-amber-50 to-orange-50 border-amber-300';
+                scoreNumberClass = 'text-amber-600';
+                rankAdvice = '要小心喔！你在部分情境中容易受到「高薪、限時名額或情緒勒索」影響。切記：不繳錢、不給證件帳戶、不拍私密照！';
+            } else {
+                rankTitle = 'C 級・高風險待加強防線';
+                rankBadgeClass = 'bg-rose-100 text-rose-700 border-rose-200';
+                scoreBoxClass = 'bg-gradient-to-br from-rose-50 to-red-50 border-rose-300';
+                scoreNumberClass = 'text-rose-600';
+                rankAdvice = '警報響起！你非常容易落入詐騙話術圈套。建議重新挑戰得分較低的關卡，遇到任何要求匯款或個資的訊息，務必先撥打 165 諮詢！';
+            }
+
+            const breakdownHtml = scenarioOrder.map(key => {
+                const sc = scenarios[key];
+                const score = scenarioScores[key] ?? 0;
+                const scoreColor = score >= 80 ? 'text-emerald-600' : (score >= 50 ? 'text-amber-600' : 'text-rose-600');
+                return `
+                    <div class="flex items-center justify-between py-2 px-3 rounded-xl bg-slate-50 border border-slate-200/80 text-xs">
+                        <span class="font-medium text-slate-700">${sc.title}</span>
+                        <span class="font-bold ${scoreColor}">${score} / 100 分</span>
+                    </div>
+                `;
+            }).join('');
+
+            openModal(`
+                <div class="text-center mb-4">
+                    <div class="w-14 h-14 mx-auto rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white flex items-center justify-center mb-2.5 shadow-lg shadow-emerald-500/25">
+                        <i data-lucide="trophy" class="w-7 h-7"></i>
+                    </div>
+                    <span class="inline-block text-xs font-bold px-3 py-1 rounded-full border ${rankBadgeClass}">
+                        ${rankTitle}
+                    </span>
+
+                    <!-- 醒目放大版綜合安全指數總分數區塊 -->
+                    <div class="mt-3 p-4 rounded-2xl border-2 ${scoreBoxClass} shadow-sm">
+                        <p class="text-xs font-bold text-slate-500 tracking-wider uppercase mb-1">綜合個人安全指數</p>
+                        <div class="flex items-baseline justify-center gap-1.5">
+                            <span class="text-5xl sm:text-6xl font-extrabold tracking-tight ${scoreNumberClass}">${overallRate}</span>
+                            <span class="text-2xl font-bold ${scoreNumberClass}">%</span>
+                        </div>
+                        <div class="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/90 border border-slate-200/80 text-sm font-bold text-slate-700">
+                            <span>五關累計總得分：</span>
+                            <span class="text-base font-extrabold ${scoreNumberClass}">${totalEarned}</span>
+                            <span class="text-xs text-slate-400">/ ${totalMax} 分</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-slate-50 rounded-2xl p-3.5 border border-slate-200 text-xs text-slate-700 leading-relaxed mb-4">
+                    ${rankAdvice}
+                </div>
+
+                <div class="space-y-1.5 mb-5">
+                    <p class="text-xs font-bold text-slate-500 px-1">各情境防禦表現明細：</p>
+                    ${breakdownHtml}
+                </div>
+
+                <div class="flex flex-col sm:flex-row gap-2.5">
+                    <button type="button" data-action="close-modal" class="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-semibold text-sm transition-colors">
+                        返回對話畫面
+                    </button>
+                    <button type="button" id="btn-reset-all-progress" class="flex-1 py-2.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-xl font-semibold text-sm transition-colors flex items-center justify-center gap-1.5">
+                        <i data-lucide="rotate-ccw" class="w-4 h-4"></i> 全部重新挑戰
+                    </button>
+                </div>
+            `);
+
+            document.getElementById('btn-reset-all-progress').addEventListener('click', () => {
+                completedScenarios.clear();
+                scenarioOrder.forEach(k => {
+                    delete scenarioScores[k];
+                    delete scenarioHistory[k];
+                    const b = document.getElementById(`badge-${k}`);
+                    if (b) {
+                        b.textContent = '已完成';
+                        b.classList.add('hidden');
+                    }
+                });
+                const banner = document.getElementById('final-summary-banner');
+                if (banner) banner.classList.add('hidden');
+                closeModal();
+                startScenario('job', true);
+            });
+        }
+
+        function inspectProfile() {
+            if (!currentScenario) return;
+            const cluesHtml = currentScenario.profileClues.map(clue => `
+                <li class="flex items-start gap-2.5 text-sm text-slate-700 bg-rose-50/70 p-3 rounded-xl border border-rose-100">
+                    <i data-lucide="alert-circle" class="w-4 h-4 text-rose-500 shrink-0 mt-0.5"></i>
+                    <span>${clue}</span>
+                </li>
+            `).join('');
+
+            const isFirstUnlock = !hasInspectedCurrentProfile;
+
+            openModal(`
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-10 h-10 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center">
+                            <i data-lucide="search" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-lg text-slate-800">帳號背景偵查報告</h3>
+                            <p class="text-xs text-slate-500">對象：${currentScenario.contactName}</p>
+                        </div>
+                    </div>
+                    <button type="button" data-action="close-modal" class="text-slate-400 hover:text-slate-600 p-1">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+                <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">系統偵測到的可疑破綻：</p>
+                <ul class="space-y-2.5 mb-6">
+                    ${cluesHtml}
+                </ul>
+                <button type="button" id="btn-confirm-inspect" data-action="close-modal" class="w-full py-3 ${isFirstUnlock ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-slate-800 hover:bg-slate-700'} text-white rounded-xl font-semibold text-sm transition-colors">
+                    ${isFirstUnlock ? '我已掌握線索，開始對話！' : '我了解了，返回對話'}
+                </button>
+            `);
+
+            // 若為初次檢視，閱讀完畢後解鎖對話流程
+            if (isFirstUnlock) {
+                hasInspectedCurrentProfile = true;
+                const inspectBtn = document.getElementById('btn-inspect-profile');
+                const inspectPing = document.getElementById('inspect-ping');
+                if (inspectBtn) {
+                    inspectBtn.classList.remove('ring-2', 'ring-amber-400', 'bg-amber-100');
+                }
+                if (inspectPing) {
+                    inspectPing.classList.add('hidden');
+                }
+                const gateCard = document.getElementById('pre-check-gate-card');
+                if (gateCard) {
+                    gateCard.remove();
+                }
+                appendSystemBanner('已完成帳號背景查證，對話正式開始');
+                renderStep(currentStepId);
+            }
+        }
+
+        function showEndingModal(choice) {
+            const isSafe = safetyScore >= 70;
+            const otherScenarioKey = getNextScenarioKey(currentScenario.id);
+            const otherScenarioName = scenarios[otherScenarioKey].title;
+            const allCompleted = completedScenarios.size === scenarioOrder.length;
+
+            const actionBtnHtml = allCompleted
+                ? `<button type="button" class="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl font-bold text-sm transition-colors flex items-center justify-center gap-2" id="modal-final-btn">
+                        <i data-lucide="trophy" class="w-4 h-4"></i> 繼續查看全 5 關綜合個人安全指數
+                   </button>`
+                : `<button type="button" data-action="close-modal" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-semibold text-sm transition-colors flex items-center justify-center gap-2" id="modal-next-btn">
+                        繼續挑戰「${otherScenarioName}」 <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                   </button>`;
+
+            openModal(`
+                <div class="text-center mb-5">
+                    <div class="w-16 h-16 mx-auto rounded-2xl flex items-center justify-center mb-3 ${isSafe ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'}">
+                        <i data-lucide="${isSafe ? 'award' : 'shield-alert'}" class="w-9 h-9"></i>
+                    </div>
+                    <span class="text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-full ${isSafe ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}">
+                        本關安全指數：${safetyScore} 分（進度 ${completedScenarios.size} / ${scenarioOrder.length} 關）
+                    </span>
+                    <h3 class="font-bold text-xl text-slate-800 mt-3">${choice.endingTitle}</h3>
+                </div>
+                <div class="bg-slate-50 rounded-2xl p-4 border border-slate-200 text-sm text-slate-700 leading-relaxed mb-5">
+                    ${choice.endingSummary}
+                </div>
+                <div class="space-y-2.5">
+                    ${actionBtnHtml}
+                    <button type="button" id="modal-stay-review-btn" class="w-full py-2.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 rounded-xl font-semibold text-sm transition-colors flex items-center justify-center gap-2">
+                        <i data-lucide="clock" class="w-4 h-4"></i> 停留畫面 1 分鐘回顧對話
+                    </button>
+                    <button type="button" data-action="close-modal" class="w-full py-2.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-xl font-semibold text-sm transition-colors flex items-center justify-center gap-2" id="modal-retry-btn">
+                        <i data-lucide="rotate-ccw" class="w-4 h-4"></i> 重新體驗本情境
+                    </button>
+                </div>
+            `);
+
+            if (allCompleted) {
+                document.getElementById('modal-final-btn').addEventListener('click', () => {
+                    showFinalSummaryModal();
+                });
+            } else {
+                document.getElementById('modal-next-btn').addEventListener('click', () => {
+                    startScenario(otherScenarioKey);
+                });
+            }
+            document.getElementById('modal-stay-review-btn').addEventListener('click', () => {
+                closeModal();
+                renderEndingControls(choice, true);
+            });
+            document.getElementById('modal-retry-btn').addEventListener('click', () => {
+                startScenario(currentScenario.id, true);
+            });
+        }
+
+        function toggleGuideModal(show) {
+            if (!show) {
+                closeModal();
+                return;
+            }
+            openModal(`
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center">
+                            <i data-lucide="book-open-check" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-lg text-slate-800">青少年反詐防身錦囊</h3>
+                            <p class="text-xs text-slate-500">記住「三不五要」原則，遠離網路陷阱</p>
+                        </div>
+                    </div>
+                    <button type="button" data-action="close-modal" class="text-slate-400 hover:text-slate-600 p-1">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+                <div class="space-y-3 text-sm text-slate-700 mb-6">
+                    <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200">
+                        <h4 class="font-bold text-indigo-700 mb-1">1. 求職防詐「七不原則」</h4>
+                        <p class="text-xs text-slate-600 leading-relaxed">不繳錢、不購買、不辦卡、不隨意簽約、證件不離身（不傳身分證與存摺封面）、不飲用不明飲料、不非法工作。</p>
+                    </div>
+                    <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200">
+                        <h4 class="font-bold text-rose-700 mb-1">2. 社群交友「零金錢往來」</h4>
+                        <p class="text-xs text-slate-600 leading-relaxed">凡是網友提到「穩賺不賠投資」、「代墊刷單」、「借用銀行帳戶」或教唆對超商店員說謊，100% 是詐騙。</p>
+                    </div>
+                    <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200">
+                        <h4 class="font-bold text-emerald-700 mb-1">3. 懷疑受騙立刻求證</h4>
+                        <p class="text-xs text-slate-600 leading-relaxed">遇到親友借錢先打電話確認本人；任何可疑訊息皆可撥打 <strong>165 反詐騙諮詢專線</strong> 或向師長、家長求助。</p>
+                    </div>
+                </div>
+                <button type="button" data-action="close-modal" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-semibold text-sm transition-colors">
+                    我記住了！
+                </button>
+            `);
+        }
+
+        // ==========================================
+        // 4. 全域事件委派與初始化
+        // ==========================================
+        document.addEventListener('click', (e) => {
+            const actionEl = e.target.closest('[data-action]');
+            if (actionEl) {
+                const action = actionEl.getAttribute('data-action');
+                if (action === 'start-scenario') {
+                    const scenarioKey = actionEl.getAttribute('data-scenario');
+                    if (scenarioKey) startScenario(scenarioKey);
+                } else if (action === 'inspect-profile') {
+                    inspectProfile();
+                } else if (action === 'open-guide') {
+                    toggleGuideModal(true);
+                } else if (action === 'open-final-report') {
+                    showFinalSummaryModal();
+                } else if (action === 'close-modal') {
+                    closeModal();
+                }
+                return;
+            }
+
+            // 點擊彈窗遮罩空白處關閉視窗
+            const overlay = document.getElementById('modal-overlay');
+            if (e.target === overlay) {
+                closeModal();
+            }
+        });
+
+        window.addEventListener('DOMContentLoaded', () => {
+            safeCreateIcons();
+        });
+    </script>
+</body>
+</html>
